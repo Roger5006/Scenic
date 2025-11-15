@@ -1,0 +1,85 @@
+{
+  "params": {
+    "map": "PosixPath('/Users/shaozeli/Home/Scenic/assets/maps/CARLA/Town01.xodr')",
+    "use2DMap": true,
+    "map_options": "{}"
+  },
+  "ego_index": 0,
+  "workspace": "Workspace(<AllRegion everywhere at 0x117457d00>)",
+  "objects": [
+    {
+      "index": 0,
+      "class": "Car",
+      "position": [
+        325.38253037159916,
+        -1.7061918427510039
+      ],
+      "heading": -1.5713275634796904,
+      "orientation": "Orientation.fromEuler(np.float64(-1.5713275634796904), np.float64(0.0), np.float64(0.0))",
+      "width": 2.0,
+      "length": 4.5,
+      "height": 4.5,
+      "radius": 3.3354160160315836,
+      "allowCollisions": false,
+      "requireVisible": false,
+      "occluding": false,
+      "render": true,
+      "color": [
+        0.561432313787008,
+        0.561432313787008,
+        0.561432313787008
+      ],
+      "sensors": []
+    }
+  ],
+  "sampled_values": [
+    {
+      "dep": "Point2D({'_nonObservingEntity': None, '_observingEntity': None, 'baseOffset': Vector(0, 0, 0), 'contactTolerance': 0, 'height': 0.0, 'length': 0.0, 'mutationScale': 0.0, 'mutator': (<scenic.core.object_types.PositionMutator object at 0x16e224d90>,), 'onDirection': None, 'parentOrientation': <scenic.core.vectors.PiecewiseVectorField object at 0x1719383d0>.__getitem__(PointIn(PolygonalRegion(<MULTIPOLYGON (((-3.907 -6.862, -3.907 -6.86, -3.906 -6.858, -3.571 -5.274, ...>, 0))), 'position': PointIn(PolygonalRegion(<MULTIPOLYGON (((-3.907 -6.862, -3.907 -6.86, -3.906 -6.858, -3.571 -5.274, ...>, 0)), 'positionStdDev': Vector(1, 1, 0), 'regionContainedIn': None, 'viewAngles': (6.283185307179586, 3.141592653589793), 'viewRayCount': None, 'viewRayDensity': 5, 'viewRayDistanceScaling': False, 'visibleDistance': 50.0, 'width': 0.0})",
+      "value": "Point2D({'_nonObservingEntity': None, '_observingEntity': None, 'baseOffset': Vector(0, 0, 0), 'contactTolerance': 0, 'height': 0.0, 'length': 0.0, 'mutationScale': 0.0, 'mutator': (<scenic.core.object_types.PositionMutator object at 0x16e224d90>,), 'onDirection': None, 'parentOrientation': Orientation.fromEuler(np.float64(-1.5713275634796904), np.float64(0.0), np.float64(0.0)), 'position': Vector(325.38253037159916, -1.7061918427510039, 0), 'positionStdDev': Vector(1, 1, 0), 'regionContainedIn': None, 'viewAngles': (6.283185307179586, 3.141592653589793), 'viewRayCount': None, 'viewRayDensity': 5, 'viewRayDistanceScaling': False, 'visibleDistance': 50.0, 'width': 0.0})"
+    },
+    {
+      "dep": "Car({'_nonObservingEntity': None, '_observingEntity': None, '_parentScenario': <weakref at 0x16e916810; to 'DynamicScenario' at 0x117ad5550>, 'allowCollisions': False, 'angularSpeed': 0.0, 'angularVelocity': Vector(0, 0, 0), 'baseOffset': (0, 0, 0), 'behavior': None, 'cameraOffset': Vector(0, 0, 0), 'color': <scenic.simulators.utils.colors.NoisyColorDistribution object at 0x16e26fa90>, 'contactTolerance': 0, 'elevation': None, 'heading': <scenic.core.vectors.VectorField object at 0x171938910>.__getitem__(PointIn(PolygonalRegion(<MULTIPOLYGON (((-3.907 -6.862, -3.907 -6.86, -3.906 -6.858, -3.571 -5.274, ...>, 0))).__add__(0).yaw, 'headingStdDev': 0.08726646259971647, 'height': 4.5, 'lastActions': (), 'length': 4.5, 'mutationScale': 0.0, 'mutator': (<scenic.core.object_types.OrientationMutator object at 0x16e34f160>, <scenic.core.object_types.PositionMutator object at 0x16e385a90>), 'observations': {}, 'occluding': False, 'onDirection': None, 'orientation': <scenic.core.vectors.VectorField object at 0x171938910>.__getitem__(PointIn(PolygonalRegion(<MULTIPOLYGON (((-3.907 -6.862, -3.907 -6.86, -3.906 -6.858, -3.571 -5.274, ...>, 0))).__add__(0), 'orientationStdDev': Vector(0.08726646259971647, 0, 0), 'parentOrientation': <scenic.core.vectors.VectorField object at 0x171938910>.__getitem__(PointIn(PolygonalRegion(<MULTIPOLYGON (((-3.907 -6.862, -3.907 -6.86, -3.906 -6.858, -3.571 -5.274, ...>, 0))).__add__(0), 'pitch': 0.0, 'position': PointIn(PolygonalRegion(<MULTIPOLYGON (((-3.907 -6.862, -3.907 -6.86, -3.906 -6.858, -3.571 -5.274, ...>, 0)), 'positionStdDev': Vector(1, 1, 0), 'regionContainedIn': <PolygonalFootprintRegion at 0x1007539d0>, 'render': True, 'requireVisible': False, 'roadDeviation': 0, 'roll': 0.0, 'sensors': {}, 'shape': <scenic.core.shapes.BoxShape object at 0x11785ff40>, 'showVisibleRegion': False, 'sideComponentThresholds': ((-0.5, 0.5), (-0.5, 0.5), (-0.5, 0.5)), 'speed': 0.0, 'velocity': Vector(0, 0, 0), 'viewAngle': 1.5707963267948966, 'viewAngles': (1.5707963267948966, 3.141592653589793), 'viewRayCount': None, 'viewRayDensity': 5, 'viewRayDistanceScaling': False, 'visibleDistance': 50.0, 'visionSensorOffset': Vector(0, 2.25, 0), 'width': 2.0, 'yaw': 0.0})",
+      "value": "Car({'_nonObservingEntity': None, '_observingEntity': None, '_parentScenario': <weakref at 0x16e916810; to 'DynamicScenario' at 0x117ad5550>, 'allowCollisions': False, 'angularSpeed': 0.0, 'angularVelocity': Vector(0, 0, 0), 'baseOffset': (0, 0, 0), 'behavior': None, 'cameraOffset': Vector(0, 0, 0), 'color': Color(r=0.561432313787008, g=0.561432313787008, b=0.561432313787008), 'contactTolerance': 0, 'elevation': None, 'heading': np.float64(-1.5713275634796904), 'headingStdDev': 0.08726646259971647, 'height': 4.5, 'lastActions': (), 'length': 4.5, 'mutationScale': 0.0, 'mutator': (<scenic.core.object_types.OrientationMutator object at 0x16e34f160>, <scenic.core.object_types.PositionMutator object at 0x16e385a90>), 'observations': {}, 'occluding': False, 'onDirection': None, 'orientation': Orientation.fromEuler(np.float64(-1.5713275634796904), np.float64(0.0), np.float64(0.0)), 'orientationStdDev': Vector(0.08726646259971647, 0, 0), 'parentOrientation': Orientation.fromEuler(np.float64(-1.5713275634796904), np.float64(0.0), np.float64(0.0)), 'pitch': 0.0, 'position': Vector(325.38253037159916, -1.7061918427510039, 0), 'positionStdDev': Vector(1, 1, 0), 'regionContainedIn': <PolygonalFootprintRegion at 0x1007539d0>, 'render': True, 'requireVisible': False, 'roadDeviation': 0, 'roll': 0.0, 'sensors': {}, 'shape': <scenic.core.shapes.BoxShape object at 0x11785ff40>, 'showVisibleRegion': False, 'sideComponentThresholds': ((-0.5, 0.5), (-0.5, 0.5), (-0.5, 0.5)), 'speed': 0.0, 'velocity': Vector(0, 0, 0), 'viewAngle': 1.5707963267948966, 'viewAngles': (1.5707963267948966, 3.141592653589793), 'viewRayCount': None, 'viewRayDensity': 5, 'viewRayDistanceScaling': False, 'visibleDistance': 50.0, 'visionSensorOffset': Vector(0, 2.25, 0), 'width': 2.0, 'yaw': 0.0})"
+    },
+    {
+      "dep": "everywhere",
+      "value": "<AllRegion everywhere at 0x117457d00>"
+    },
+    {
+      "dep": "nowhere",
+      "value": "<EmptyRegion nowhere at 0x117457cd0>"
+    },
+    {
+      "dep": "everywhere",
+      "value": "<AllRegion everywhere at 0x117457d00>"
+    },
+    {
+      "dep": "nowhere",
+      "value": "<EmptyRegion nowhere at 0x117457cd0>"
+    },
+    {
+      "dep": "PolygonalRegion(<MULTIPOLYGON (((-3.907 -6.862, -3.907 -6.86, -3.906 -6.858, -3.571 -5.274, ...>, 0)",
+      "value": "PolygonalRegion(<MULTIPOLYGON (((-3.907 -6.862, -3.907 -6.86, -3.906 -6.858, -3.571 -5.274, ...>, 0)"
+    },
+    {
+      "dep": "PolylineRegion(<MULTILINESTRING Z ((384.592 4.28 0, 348.232 4.299 0), (348.228 -4.301 0, 38...>)",
+      "value": "PolylineRegion(<MULTILINESTRING Z ((384.592 4.28 0, 348.232 4.299 0), (348.228 -4.301 0, 38...>)"
+    },
+    {
+      "dep": "PolygonalRegion(<MULTIPOLYGON (((-8.33 -9.957, -8.33 -9.957, -8.302 -7.654, -8.302 -7.652, -...>, 0)",
+      "value": "PolygonalRegion(<MULTIPOLYGON (((-8.33 -9.957, -8.33 -9.957, -8.302 -7.654, -8.302 -7.652, -...>, 0)"
+    },
+    {
+      "dep": "PolygonalRegion(<MULTIPOLYGON (((168.08 4.343, 325.632 4.311, 325.632 4.011, 168.08 4.043, 1...>, 0)",
+      "value": "PolygonalRegion(<MULTIPOLYGON (((168.08 4.343, 325.632 4.311, 325.632 4.011, 168.08 4.043, 1...>, 0)"
+    },
+    {
+      "dep": "PolygonalRegion(<MULTIPOLYGON (((10.008 -332.84, 8.65 -332.819, 7.444 -332.696, 6.255 -332.4...>, 0)",
+      "value": "PolygonalRegion(<MULTIPOLYGON (((10.008 -332.84, 8.65 -332.819, 7.444 -332.696, 6.255 -332.4...>, 0)"
+    },
+    {
+      "dep": "PolygonalRegion(<MULTIPOLYGON (((325.628 -3.989, 325.628 -3.987, 325.632 4.01, 325.632 4.011...>, 0)",
+      "value": "PolygonalRegion(<MULTIPOLYGON (((325.628 -3.989, 325.628 -3.987, 325.632 4.01, 325.632 4.011...>, 0)"
+    }
+  ]
+}
