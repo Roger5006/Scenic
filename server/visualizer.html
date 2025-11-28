@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Scenic Scene Visualizer</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg: #050608;
+      --panel: #13141b;
+      --panel-soft: #171822;
+      --accent: #4f8cff;
+      --text: #f5f5f5;
+      --muted: #9ca3af;
+      --border: #272833;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px 16px 32px;
+      background: radial-gradient(circle at top, #1f2933 0, #050608 55%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      color: var(--text);
+    }
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      margin: 0 0 6px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, #151623, #10111a);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.45);
+    }
+    .controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      color: var(--muted);
+      gap: 4px;
+      min-width: 150px;
+    }
+    .controls select,
+    .controls input[type="file"],
+    .controls textarea {
+      padding: 4px 8px;
+      font-size: 13px;
+      background: #050608;
+      color: var(--text);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+      transition: border-color 0.12s ease, background-color 0.12s ease;
+    }
+    .controls select:focus,
+    .controls input[type="file"]:focus,
+    .controls textarea:focus {
+      border-color: var(--accent);
+      background: #070913;
+    }
+    .controls button {
+      padding: 4px 8px;
+      font-size: 13px;
+      background: #050608;
+      color: var(--text);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.12s ease, background-color 0.12s ease;
+    }
+    .controls button:focus {
+      border-color: var(--accent);
+      background: #070913;
+    }
+    
+    .plots {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: minmax(650px, auto);
+      gap: 18px;
+    }
+    .plot-card {
+      background: var(--panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 10px 10px 6px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.55);
+      display: flex;
+      flex-direction: column;
+      min-height: 260px;
+      position: relative;
+    }
+    .plot-header {
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 4px 4px;
+      color: #e5e7eb;
+    }
+    .plot-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .plot-body {
+      flex: 1;
+      min-height: 200px;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+    }
+
+    #scatter {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1000 / 1600;
+    }
+
+    #mapContainer {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+    #mapImage {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1000 / 1600;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 1000px) {
+      .plots {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+      }
+    }
+
+    .heat-colorbar {
+      position: absolute;
+      left: -32px;
+      top: 40px;
+      bottom: 40px;
+      width: 18px;
+      border-radius: 8px;
+      background: linear-gradient(
+        to top,
+        #00008b 0%,
+        #0044ff 25%,
+        #00e0ff 50%,
+        #ffe680 75%,
+        #ff3300 100%
+      );
+      display: none;
+    }
+
+    .heat-colorbar-label {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .heat-colorbar-label.top {
+      top: -12px;
+    }
+
+    .heat-colorbar-label.bottom {
+      bottom: -12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Scenic Scene Visualizer</h1>
+    <div class="subtitle">
+      Compare Scenic-generated positions with the underlying GTA map.
+    </div>
+
+    <div class="controls">
+        <label style="min-width: 600px;">
+            Scenic program
+            <textarea id="scenicSourceInput" rows="4" style="white-space: pre; width: 100%; height: 200px; resize: vertical;"></textarea>
+          </label>
+        <label>
+            JSON file
+            <button id="fileRequestBtn" type="button">Request from server</button>
+        </label>
+
+      <label>
+        Object type
+        <select id="objectType"></select>
+      </label>
+
+      <label>
+        Coordinates
+        <select id="coordMode">
+          <option value="global">Global (world)</option>
+          <option value="ego">Relative to ego</option>
+        </select>
+      </label>
+
+      <label>
+        Plot mode
+        <select id="plotMode">
+          <option value="scatter">Scatter</option>
+          <option value="heatmap">Heatmap</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="plots">
+      <div class="plot-card" id="scatterCard">
+        <div id="heatColorbar" class="heat-colorbar" aria-hidden="true">
+          <div class="heat-colorbar-label top">high</div>
+          <div class="heat-colorbar-label bottom">low</div>
+        </div>
+
+        <div class="plot-header">
+          <span>Plot (image coords)</span>
+          <span class="plot-subtitle" id="scatterSubtitle"></span>
+        </div>
+        <div class="plot-body">
+          <div id="scatter"></div>
+        </div>
+      </div>
+
+      <div class="plot-card">
+        <div class="plot-header">
+          <span>Map (reference)</span>
+          <span class="plot-subtitle">map_coordinates.png</span>
+        </div>
+        <div class="plot-body" id="mapContainer">
+          <img id="mapImage" src="map_coordinates.png" alt="map">
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const MAP_WIDTH  = 1150;
+const MAP_HEIGHT = 1700;
+
+let scenes = [];
+
+const scenicSourceInput = document.getElementById('scenicSourceInput');
+const fileRequestBtn = document.getElementById('fileRequestBtn');
+const objectType     = document.getElementById('objectType');
+const coordMode   = document.getElementById('coordMode');
+const plotMode    = document.getElementById('plotMode');
+const scatterSubtitleEl = document.getElementById('scatterSubtitle');
+const heatColorbar = document.getElementById('heatColorbar');
+
+fileRequestBtn.addEventListener('click', async () => {
+  scenes = [];
+  try {
+    Plotly.purge('scatter');
+  } catch (e) {
+    console.warn('Plotly purge failed (maybe first run):', e);
+  }
+  scatterSubtitleEl.textContent = 'Loading from server...';
+  if (heatColorbar) {
+    heatColorbar.style.display = 'none';
+  }
+  objectType.innerHTML = '';
+
+  try {
+    const res = await fetch('http://localhost:8000/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        num_scenes: 20000,
+        seed: 0,
+        scenic_source: scenicSourceInput.value
+      })
+    });
+
+    if (!res.ok) {
+      scatterSubtitleEl.textContent = 'Server error';
+      alert('Server error: ' + res.status);
+      return;
+    }
+
+    const data = await res.json();
+    scenes = Array.isArray(data) ? data : data.scenes;
+
+    initControls();
+    updateScatter();
+  } catch (err) {
+    console.error(err);
+    scatterSubtitleEl.textContent = 'Request failed';
+    alert('Request failed; see console for details.');
+  }
+});
+
+async function loadDefaultScenicSource() {
+  if (!scenicSourceInput) return;
+  try {
+    const res = await fetch('http://localhost:8000/scenario_source');
+    if (!res.ok) {
+      console.warn('Failed to load default Scenic source:', res.status);
+      return;
+    }
+    const data = await res.json();
+    if (data.source) {
+      scenicSourceInput.value = data.source;
+    }
+  } catch (err) {
+    console.error('Error loading Scenic source:', err);
+  }
+}
+
+function initControls() {
+  const objSet = new Set();
+  for (const s of scenes) {
+    for (const o of s.objects || []) {
+      if (o.type) objSet.add(o.type);
+    }
+  }
+  objectType.innerHTML = '';
+  for (const t of objSet) {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    objectType.appendChild(opt);
+  }
+
+  objectType.onchange = updateScatter;
+  coordMode.onchange  = updateScatter;
+  plotMode.onchange   = updateScatter;
+}
+
+function getEgoObject(scene) {
+  if (!scene.objects) return null;
+  for (const o of scene.objects) {
+    if (o.isEgo) return o;
+  }
+  return null;
+}
+
+function updateScatter() {
+  const type = objectType.value;
+  const mode = coordMode.value;
+  const visMode = plotMode.value || 'scatter';
+
+  if (heatColorbar) {
+    heatColorbar.style.display = (visMode === 'heatmap') ? 'block' : 'none';
+  }
+
+  const xs = [];
+  const ys = [];
+
+  for (const s of scenes) {
+    const ego = getEgoObject(s);
+    for (const o of s.objects || []) {
+      if (o.type !== type) continue;
+      if (o.x == null || o.y == null) continue;
+
+      let x = o.x;
+      let y = -o.y;
+
+      if (mode === 'ego' && ego && ego.x != null && ego.y != null) {
+        x = o.x - ego.x;
+        y = o.y - ego.y;
+      }
+
+      xs.push(x);
+      ys.push(y);
+    }
+  }
+
+  const coordLabel = mode === 'global' ? 'global' : 'ego-relative';
+  scatterSubtitleEl.textContent =
+    `${type} positions · ${coordLabel} → image coords (0–1100, 0–1700)`;
+
+  if (xs.length === 0) {
+    if (heatColorbar) heatColorbar.style.display = 'none';
+    Plotly.purge('scatter');
+    return;
+  }
+
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+
+  const worldWidth  = (maxX - minX) || 1;
+  const worldHeight = (maxY - minY) || 1;
+
+  const scale = Math.min(MAP_WIDTH / worldWidth, MAP_HEIGHT / worldHeight);
+
+  const pxs = [];
+  const pys = [];
+
+  for (let i = 0; i < xs.length; i++) {
+    const x = xs[i];
+    const y = ys[i];
+
+    const px = (x - minX) * scale;
+    const py = (y - minY) * scale;
+
+    pxs.push(px);
+    pys.push(py);
+  }
+
+  const layout = {
+    paper_bgcolor: '#13141b',
+    plot_bgcolor: '#050608',
+    font: { color: '#e5e7eb', size: 11 },
+    xaxis: {
+      title: 'x (pixels ~)',
+      gridcolor: '#20212c',
+      range: [0, MAP_WIDTH]
+    },
+    yaxis: {
+      title: 'y (pixels ~)',
+      gridcolor: '#20212c',
+      range: [MAP_HEIGHT, 0],
+      scaleanchor: 'x',
+      scaleratio: 1
+    },
+    margin: { t: 4, l: 50, r: 10, b: 40 },
+    showlegend: false
+  };
+
+  let trace;
+  if (visMode === 'heatmap') {
+    trace = {
+      x: pxs,
+      y: pys,
+      type: 'histogram2d',
+      nbinsx: 300,
+      nbinsy: 500,
+      showscale: false,
+      zsmooth: 'best'
+    };
+  } else {
+    trace = {
+      x: pxs,
+      y: pys,
+      mode: 'markers',
+      type: 'scattergl',
+      marker: { size: 4.5, opacity: 0.9 },
+      showlegend: false
+    };
+  }
+
+  Plotly.newPlot(
+    'scatter',
+    [trace],
+    layout,
+    { displaylogo: false, responsive: true }
+  );
+}
+
+loadDefaultScenicSource();
+</script>
+</body>
+</html>
