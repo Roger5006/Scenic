@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-SCENARIO_PATH = "../examples/gta/twoCars.scenic"
+SCENARIO_PATH = str((Path(__file__).resolve().parent.parent / "examples" / "gta" / "twoCars.scenic").resolve())
 
 DEFAULT_NUM_SCENES = 500_000
 MAX_NUM_SCENES     = 500_000
