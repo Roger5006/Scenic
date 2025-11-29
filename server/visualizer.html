@@ -217,6 +217,19 @@
       </label>
 
       <label>
+        Histogram metric
+        <select id="histogramMetric">
+          <option value="distance_to_ego">Distance to ego</option>
+          <option value="heading">Heading</option>
+        </select>
+      </label>
+
+      <label>
+        Histogram bins
+        <input id="histogramBins" type="number" min="1" max="200" value="30" style="width:80px">
+      </label>
+
+      <label>
         Coordinates
         <select id="coordMode">
           <option value="global">Global (world)</option>
@@ -249,6 +262,16 @@
         </div>
       </div>
 
+      <div class="plot-card" id="histogramCard">
+        <div class="plot-header">
+          <span>Histogram</span>
+          <span class="plot-subtitle" id="histogramSubtitle"></span>
+        </div>
+        <div class="plot-body">
+          <div id="histogram" style="width:100%; height:100%;"></div>
+        </div>
+      </div>
+
       <div class="plot-card">
         <div class="plot-header">
           <span>Map (reference)</span>
@@ -274,6 +297,10 @@ const coordMode   = document.getElementById('coordMode');
 const plotMode    = document.getElementById('plotMode');
 const scatterSubtitleEl = document.getElementById('scatterSubtitle');
 const heatColorbar = document.getElementById('heatColorbar');
+const histogramMetric = document.getElementById('histogramMetric');
+const histogramBins = document.getElementById('histogramBins');
+const histogramSubtitleEl = document.getElementById('histogramSubtitle');
+const histogramDiv = document.getElementById('histogram');
 
   fileRequestBtn.addEventListener('click', async () => {
   scenes = [];
@@ -352,6 +379,25 @@ function initControls() {
   objectType.onchange = updateScatter;
   coordMode.onchange  = updateScatter;
   plotMode.onchange   = updateScatter;
+  // update histogram when controls change
+  objectType.onchange = () => { updateScatter(); updateHistogram(); };
+  coordMode.onchange  = () => { updateScatter(); updateHistogram(); };
+  plotMode.onchange   = () => { updateScatter(); updateHistogram(); };
+  histogramMetric.onchange = updateHistogram;
+  histogramBins.onchange = updateHistogram;
+
+  // populate histogram metric with param keys if available
+  try {
+    const sample = scenes[0];
+    if (sample && sample.params) {
+      for (const k of Object.keys(sample.params)) {
+        const opt = document.createElement('option');
+        opt.value = 'param:' + k;
+        opt.textContent = 'param: ' + k;
+        histogramMetric.appendChild(opt);
+      }
+    }
+  } catch (e) { /* ignore */ }
 }
 
 function getEgoObject(scene) {
@@ -400,6 +446,7 @@ function updateScatter() {
   if (xs.length === 0) {
     if (heatColorbar) heatColorbar.style.display = 'none';
     Plotly.purge('scatter');
+    Plotly.purge('histogram');
     return;
   }
 
@@ -475,6 +522,79 @@ function updateScatter() {
     layout,
     { displaylogo: false, responsive: true }
   );
+
+  // update histogram too
+  updateHistogram();
+}
+
+function getMetricValueForObject(scene, obj, metric) {
+  if (!obj) return null;
+  if (!metric) return null;
+  if (metric === 'heading') {
+    if (obj.heading == null) return null;
+    return Number(obj.heading);
+  }
+  if (metric === 'distance_to_ego') {
+    const ego = getEgoObject(scene);
+    if (!ego || ego.x == null || ego.y == null) return null;
+    if (obj.x == null || obj.y == null) return null;
+    const dx = obj.x - ego.x;
+    const dy = obj.y - ego.y;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+  if (metric.startsWith('param:')) {
+    const pname = metric.slice(6);
+    try {
+      const v = scene.params ? scene.params[pname] : undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    } catch (e) { return null; }
+  }
+  return null;
+}
+
+function updateHistogram() {
+  if (!histogramDiv) return;
+  const type = objectType.value;
+  const metric = histogramMetric.value || 'distance_to_ego';
+  const bins = Math.max(1, Number(histogramBins.value) || 30);
+
+  const values = [];
+  for (const s of scenes) {
+    if (!s.objects) continue;
+    // choose first object of selected type
+    const obj = s.objects.find(o => o.type === type);
+    if (!obj) continue;
+    const v = getMetricValueForObject(s, obj, metric);
+    if (v == null || Number.isNaN(v)) continue;
+    values.push(v);
+  }
+
+  const subtitleLabel = (metric.startsWith('param:') ? metric.slice(6) : metric);
+  histogramSubtitleEl.textContent = `${type} · ${subtitleLabel} · ${values.length} samples`;
+
+  if (values.length === 0) {
+    Plotly.purge('histogram');
+    return;
+  }
+
+  const data = [{
+    x: values,
+    type: 'histogram',
+    nbinsx: bins,
+    marker: { color: '#4f8cff' }
+  }];
+
+  const layout = {
+    paper_bgcolor: '#13141b',
+    plot_bgcolor: '#050608',
+    font: { color: '#e5e7eb', size: 11 },
+    margin: { t: 10, l: 50, r: 10, b: 40 },
+    xaxis: { title: subtitleLabel },
+    yaxis: { title: 'count' }
+  };
+
+  Plotly.newPlot('histogram', data, layout, { displaylogo: false, responsive: true });
 }
 
 loadDefaultScenicSource();
