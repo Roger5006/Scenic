@@ -255,7 +255,7 @@
           <span class="plot-subtitle">map_coordinates.png</span>
         </div>
         <div class="plot-body" id="mapContainer">
-          <img id="mapImage" src="map_coordinates.png" alt="map">
+              <img id="mapImage" src="/server/map_coordinates.png" alt="map">
         </div>
       </div>
     </div>
@@ -275,7 +275,7 @@ const plotMode    = document.getElementById('plotMode');
 const scatterSubtitleEl = document.getElementById('scatterSubtitle');
 const heatColorbar = document.getElementById('heatColorbar');
 
-fileRequestBtn.addEventListener('click', async () => {
+  fileRequestBtn.addEventListener('click', async () => {
   scenes = [];
   try {
     Plotly.purge('scatter');
@@ -288,8 +288,8 @@ fileRequestBtn.addEventListener('click', async () => {
   }
   objectType.innerHTML = '';
 
-  try {
-    const res = await fetch('http://localhost:8000/generate', {
+    try {
+    const res = await fetch('/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -320,7 +320,7 @@ fileRequestBtn.addEventListener('click', async () => {
 async function loadDefaultScenicSource() {
   if (!scenicSourceInput) return;
   try {
-    const res = await fetch('http://localhost:8000/scenario_source');
+    const res = await fetch('/scenario_source');
     if (!res.ok) {
       console.warn('Failed to load default Scenic source:', res.status);
       return;

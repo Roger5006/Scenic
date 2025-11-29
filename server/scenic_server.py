@@ -9,6 +9,8 @@ import scenic
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 SCENARIO_PATH = "../examples/gta/twoCars.scenic"
 
@@ -27,6 +29,16 @@ app.add_middleware(
     
     allow_headers=["*"],
 )
+
+# Serve the visualizer and other static assets from the server directory.
+server_dir = Path(__file__).resolve().parent
+app.mount("/server", StaticFiles(directory=str(server_dir)), name="server_static")
+
+
+@app.get("/")
+def root():
+    """Serve the visualizer HTML at the site root."""
+    return FileResponse(server_dir / "visualizer.html")
 
 print(f"[INFO] Using up to {N_PROCS} worker processes.")
 print(f"[INFO] Scenic scenario path = {SCENARIO_PATH}")
