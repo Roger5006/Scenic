@@ -93,7 +93,13 @@ def worker_task(args):
 
         scenario = scenic.scenarioFromString(patched_source, mode2D=True)
     else:
-        scenario = scenic.scenarioFromFile(SCENARIO_PATH, mode2D=True)
+        resolved = str(Path(SCENARIO_PATH).resolve())
+        print(f"[worker {wid}] loading scenario from: {resolved}")
+        try:
+            scenario = scenic.scenarioFromFile(resolved, mode2D=True)
+        except FileNotFoundError as e:
+            print(f"[worker {wid}] ERROR: scenario file not found at {resolved}")
+            raise
         
     scenes, num_iters = scenario.generateBatch(n_scenes)
     print(f"[worker {wid}] done (iters={num_iters})")
