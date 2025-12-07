@@ -221,6 +221,7 @@
         <select id="histogramMetric">
           <option value="distance_to_ego">Distance to ego</option>
           <option value="heading">Heading</option>
+          <option value="distance_to_nearest_curb">Dist to nearest curb</option>
         </select>
       </label>
 
@@ -262,16 +263,6 @@
         </div>
       </div>
 
-      <div class="plot-card" id="histogramCard">
-        <div class="plot-header">
-          <span>Histogram</span>
-          <span class="plot-subtitle" id="histogramSubtitle"></span>
-        </div>
-        <div class="plot-body">
-          <div id="histogram" style="width:100%; height:100%;"></div>
-        </div>
-      </div>
-
       <div class="plot-card">
         <div class="plot-header">
           <span>Map (reference)</span>
@@ -279,6 +270,16 @@
         </div>
         <div class="plot-body" id="mapContainer">
               <img id="mapImage" src="/server/map_coordinates.png" alt="map">
+        </div>
+      </div>
+      
+      <div class="plot-card" id="histogramCard">
+        <div class="plot-header">
+          <span>Histogram</span>
+          <span class="plot-subtitle" id="histogramSubtitle"></span>
+        </div>
+        <div class="plot-body">
+          <div id="histogram" style="width:100%; height:100%;"></div>
         </div>
       </div>
     </div>
@@ -542,6 +543,13 @@ function getMetricValueForObject(scene, obj, metric) {
     const dy = obj.y - ego.y;
     return Math.sqrt(dx*dx + dy*dy);
   }
+
+  if (metric === 'distance_to_nearest_curb') {
+    const v = obj.distToNearestCurb;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
   if (metric.startsWith('param:')) {
     const pname = metric.slice(6);
     try {
@@ -562,15 +570,16 @@ function updateHistogram() {
   const values = [];
   for (const s of scenes) {
     if (!s.objects) continue;
-    // choose first object of selected type
-    const obj = s.objects.find(o => o.type === type);
-    if (!obj) continue;
-    const v = getMetricValueForObject(s, obj, metric);
-    if (v == null || Number.isNaN(v)) continue;
-    values.push(v);
+
+    const objs = s.objects.filter(o => o.type === type);
+    for (const obj of objs) {
+      const v = getMetricValueForObject(s, obj, metric);
+      if (v == null || Number.isNaN(v)) continue;
+      values.push(v);
+    }
   }
 
-  const subtitleLabel = (metric.startsWith('param:') ? metric.slice(6) : metric);
+  const subtitleLabel = metric.startsWith('param:') ? metric.slice(6) : metric;
   histogramSubtitleEl.textContent = `${type} · ${subtitleLabel} · ${values.length} samples`;
 
   if (values.length === 0) {
