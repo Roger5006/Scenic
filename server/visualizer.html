@@ -59,8 +59,8 @@
       min-width: 150px;
     }
     .controls select,
-    .controls input[type="file"],
-    .controls textarea {
+    .controls textarea,
+    .controls input[type="number"] {
       padding: 4px 8px;
       font-size: 13px;
       background: #050608;
@@ -71,8 +71,8 @@
       transition: border-color 0.12s ease, background-color 0.12s ease;
     }
     .controls select:focus,
-    .controls input[type="file"]:focus,
-    .controls textarea:focus {
+    .controls textarea:focus,
+    .controls input[type="number"]:focus {
       border-color: var(--accent);
       background: #070913;
     }
@@ -142,6 +142,7 @@
       align-items: center;
       justify-content: center;
       padding: 4px;
+      position: relative;
     }
     #mapImage {
       width: 100%;
@@ -149,6 +150,17 @@
       aspect-ratio: 1000 / 1600;
       object-fit: contain;
       border-radius: 8px;
+    }
+    #workspacePlaceholder {
+      width: 100%;
+      height: 100%;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
     }
 
     @media (max-width: 1000px) {
@@ -197,19 +209,34 @@
 <body>
   <div class="page">
     <h1>Scenic Scene Visualizer</h1>
-    <div class="subtitle">
+    <div class="subtitle" id="pageSubtitle">
       Compare Scenic-generated positions with the underlying GTA map.
     </div>
 
     <div class="controls">
-        <label style="min-width: 600px;">
-            Scenic program
-            <textarea id="scenicSourceInput" rows="4" style="white-space: pre; width: 100%; height: 200px; resize: vertical;"></textarea>
-          </label>
-        <label>
-            JSON file
-            <button id="fileRequestBtn" type="button">Request from server</button>
-        </label>
+      <label>
+        Example
+        <select id="exampleType">
+          <option value="gta" selected>GTA · twoCars.scenic</option>
+          <option value="vacuum">Vacuum · vacuum_simple.scenic</option>
+          <option value="mars">Mars · narrowGoal.scenic</option>
+        </select>
+      </label>
+
+      <label style="min-width: 600px;">
+        Scenic program
+        <textarea id="scenicSourceInput" rows="4" style="white-space: pre; width: 100%; height: 200px; resize: vertical;"></textarea>
+      </label>
+
+      <label>
+        Num scenes
+        <input id="numScenes" type="number" min="1" max="500000">
+      </label>
+
+      <label>
+        JSON file
+        <button id="fileRequestBtn" type="button">Request from server</button>
+      </label>
 
       <label>
         Object type
@@ -221,7 +248,7 @@
         <select id="histogramMetric">
           <option value="distance_to_ego">Distance to ego</option>
           <option value="heading">Heading</option>
-          <option value="distance_to_nearest_curb">Dist to nearest curb</option>
+          <option value="distance_to_nearest_curb">Dist to nearest curb (GTA only)</option>
         </select>
       </label>
 
@@ -265,11 +292,14 @@
 
       <div class="plot-card">
         <div class="plot-header">
-          <span>Map (reference)</span>
-          <span class="plot-subtitle">map_coordinates.png</span>
+          <span>Map / Workspace</span>
+          <span class="plot-subtitle" id="mapSubtitle">map_coordinates.png</span>
         </div>
         <div class="plot-body" id="mapContainer">
-              <img id="mapImage" src="/server/map_coordinates.png" alt="map">
+          <img id="mapImage" src="/server/map_coordinates.png" alt="map">
+          <div id="workspacePlaceholder">
+            Workspace view.
+          </div>
         </div>
       </div>
       
@@ -290,38 +320,69 @@ const MAP_WIDTH  = 1150;
 const MAP_HEIGHT = 1700;
 
 let scenes = [];
+let currentExample = 'gta';
 
-const scenicSourceInput = document.getElementById('scenicSourceInput');
-const fileRequestBtn = document.getElementById('fileRequestBtn');
-const objectType     = document.getElementById('objectType');
-const coordMode   = document.getElementById('coordMode');
-const plotMode    = document.getElementById('plotMode');
-const scatterSubtitleEl = document.getElementById('scatterSubtitle');
-const heatColorbar = document.getElementById('heatColorbar');
-const histogramMetric = document.getElementById('histogramMetric');
-const histogramBins = document.getElementById('histogramBins');
+const exampleType         = document.getElementById('exampleType');
+const scenicSourceInput   = document.getElementById('scenicSourceInput');
+const numScenesInput      = document.getElementById('numScenes');
+const fileRequestBtn      = document.getElementById('fileRequestBtn');
+const objectType          = document.getElementById('objectType');
+const coordMode           = document.getElementById('coordMode');
+const plotMode            = document.getElementById('plotMode');
+const scatterSubtitleEl   = document.getElementById('scatterSubtitle');
+const heatColorbar        = document.getElementById('heatColorbar');
+const histogramMetric     = document.getElementById('histogramMetric');
+const histogramBins       = document.getElementById('histogramBins');
 const histogramSubtitleEl = document.getElementById('histogramSubtitle');
-const histogramDiv = document.getElementById('histogram');
+const histogramDiv        = document.getElementById('histogram');
 
-  fileRequestBtn.addEventListener('click', async () => {
+const pageSubtitleEl   = document.getElementById('pageSubtitle');
+const mapSubtitleEl    = document.getElementById('mapSubtitle');
+const mapImage         = document.getElementById('mapImage');
+const workspacePlaceholder = document.getElementById('workspacePlaceholder');
+
+function getDefaultNumScenes(example) {
+  if (example === 'gta') return 20000;
+  if (example === 'vacuum') return 200;
+  if (example === 'mars') return 20;
+  return 1000;
+}
+
+exampleType.addEventListener('change', () => {
+  currentExample = exampleType.value;
   scenes = [];
-  try {
-    Plotly.purge('scatter');
-  } catch (e) {
-    console.warn('Plotly purge failed (maybe first run):', e);
-  }
+
+  try { Plotly.purge('scatter'); } catch (e) {}
+  try { Plotly.purge('histogram'); } catch (e) {}
+
+  scatterSubtitleEl.textContent = '';
+  histogramSubtitleEl.textContent = '';
+
+  updateExampleLayout();
+  loadDefaultScenicSource();
+});
+
+fileRequestBtn.addEventListener('click', async () => {
+  scenes = [];
+  try { Plotly.purge('scatter'); } catch (e) {}
+
   scatterSubtitleEl.textContent = 'Loading from server...';
-  if (heatColorbar) {
-    heatColorbar.style.display = 'none';
-  }
+  if (heatColorbar) heatColorbar.style.display = 'none';
   objectType.innerHTML = '';
 
-    try {
+  let numScenes = Number(numScenesInput.value);
+  if (!Number.isFinite(numScenes) || numScenes <= 0) {
+    numScenes = getDefaultNumScenes(currentExample);
+    numScenesInput.value = String(numScenes);
+  }
+
+  try {
     const res = await fetch('/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        num_scenes: 20000,
+        example: currentExample,
+        num_scenes: numScenes,
         seed: 0,
         scenic_source: scenicSourceInput.value
       })
@@ -334,7 +395,7 @@ const histogramDiv = document.getElementById('histogram');
     }
 
     const data = await res.json();
-    scenes = Array.isArray(data) ? data : data.scenes;
+    scenes = Array.isArray(data) ? data : (data.scenes || []);
 
     initControls();
     updateScatter();
@@ -348,7 +409,7 @@ const histogramDiv = document.getElementById('histogram');
 async function loadDefaultScenicSource() {
   if (!scenicSourceInput) return;
   try {
-    const res = await fetch('/scenario_source');
+    const res = await fetch('/scenario_source?example=' + encodeURIComponent(currentExample));
     if (!res.ok) {
       console.warn('Failed to load default Scenic source:', res.status);
       return;
@@ -362,10 +423,40 @@ async function loadDefaultScenicSource() {
   }
 }
 
+function updateExampleLayout() {
+  numScenesInput.value = getDefaultNumScenes(currentExample);
+
+  if (currentExample === 'gta') {
+    pageSubtitleEl.textContent =
+      'Compare Scenic-generated positions with the underlying GTA map.';
+    mapSubtitleEl.textContent = 'map_coordinates.png';
+    mapImage.style.display = 'block';
+    workspacePlaceholder.style.display = 'none';
+  } else if (currentExample === 'vacuum') {
+    pageSubtitleEl.textContent =
+      'Visualize the Webots vacuum_simple room and object placements.';
+    mapSubtitleEl.textContent = 'Vacuum workspace (5.09m × 5.09m)';
+    mapImage.style.display = 'none';
+    workspacePlaceholder.style.display = 'flex';
+    workspacePlaceholder.innerHTML =
+      'Vacuum workspace (5.09 m × 5.09 m).<br>' +
+      'Use the scatter/heatmap on the left to interpret object positions.';
+  } else { // mars
+    pageSubtitleEl.textContent =
+      'Visualize the Webots Mars narrowGoal environment and robot path.';
+    mapSubtitleEl.textContent = 'Mars narrowGoal workspace';
+    mapImage.style.display = 'none';
+    workspacePlaceholder.style.display = 'flex';
+    workspacePlaceholder.innerHTML =
+      'Mars narrowGoal environment.<br>' +
+      'Scatter/heatmap on the left shows robot and obstacles in 2D projection.';
+  }
+}
+
 function initControls() {
   const objSet = new Set();
   for (const s of scenes) {
-    for (const o of s.objects || []) {
+    for (const o of (s.objects || [])) {
       if (o.type) objSet.add(o.type);
     }
   }
@@ -377,17 +468,12 @@ function initControls() {
     objectType.appendChild(opt);
   }
 
-  objectType.onchange = updateScatter;
-  coordMode.onchange  = updateScatter;
-  plotMode.onchange   = updateScatter;
-  // update histogram when controls change
-  objectType.onchange = () => { updateScatter(); updateHistogram(); };
-  coordMode.onchange  = () => { updateScatter(); updateHistogram(); };
-  plotMode.onchange   = () => { updateScatter(); updateHistogram(); };
+  objectType.onchange      = () => { updateScatter(); updateHistogram(); };
+  coordMode.onchange       = () => { updateScatter(); updateHistogram(); };
+  plotMode.onchange        = () => { updateScatter(); updateHistogram(); };
   histogramMetric.onchange = updateHistogram;
-  histogramBins.onchange = updateHistogram;
+  histogramBins.onchange   = updateHistogram;
 
-  // populate histogram metric with param keys if available
   try {
     const sample = scenes[0];
     if (sample && sample.params) {
@@ -398,7 +484,7 @@ function initControls() {
         histogramMetric.appendChild(opt);
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {}
 }
 
 function getEgoObject(scene) {
@@ -410,12 +496,13 @@ function getEgoObject(scene) {
 }
 
 function updateScatter() {
-  const type = objectType.value;
-  const mode = coordMode.value;
+  const type    = objectType.value;
+  const mode    = coordMode.value;
   const visMode = plotMode.value || 'scatter';
 
   if (heatColorbar) {
-    heatColorbar.style.display = (visMode === 'heatmap') ? 'block' : 'none';
+    heatColorbar.style.display =
+      (visMode === 'heatmap' && currentExample === 'gta') ? 'block' : 'none';
   }
 
   const xs = [];
@@ -423,7 +510,7 @@ function updateScatter() {
 
   for (const s of scenes) {
     const ego = getEgoObject(s);
-    for (const o of s.objects || []) {
+    for (const o of (s.objects || [])) {
       if (o.type !== type) continue;
       if (o.x == null || o.y == null) continue;
 
@@ -441,8 +528,11 @@ function updateScatter() {
   }
 
   const coordLabel = mode === 'global' ? 'global' : 'ego-relative';
+  const exLabel = (currentExample === 'gta')
+    ? 'GTA'
+    : (currentExample === 'vacuum' ? 'Vacuum' : 'Mars');
   scatterSubtitleEl.textContent =
-    `${type} positions · ${coordLabel} → image coords (0–1100, 0–1700)`;
+    `${exLabel} · ${type} positions · ${coordLabel}`;
 
   if (xs.length === 0) {
     if (heatColorbar) heatColorbar.style.display = 'none';
@@ -524,7 +614,6 @@ function updateScatter() {
     { displaylogo: false, responsive: true }
   );
 
-  // update histogram too
   updateHistogram();
 }
 
@@ -563,9 +652,9 @@ function getMetricValueForObject(scene, obj, metric) {
 
 function updateHistogram() {
   if (!histogramDiv) return;
-  const type = objectType.value;
+  const type   = objectType.value;
   const metric = histogramMetric.value || 'distance_to_ego';
-  const bins = Math.max(1, Number(histogramBins.value) || 30);
+  const bins   = Math.max(1, Number(histogramBins.value) || 30);
 
   const values = [];
   for (const s of scenes) {
@@ -580,7 +669,11 @@ function updateHistogram() {
   }
 
   const subtitleLabel = metric.startsWith('param:') ? metric.slice(6) : metric;
-  histogramSubtitleEl.textContent = `${type} · ${subtitleLabel} · ${values.length} samples`;
+  const exLabel = (currentExample === 'gta')
+    ? 'GTA'
+    : (currentExample === 'vacuum' ? 'Vacuum' : 'Mars');
+  histogramSubtitleEl.textContent =
+    `${exLabel} · ${type} · ${subtitleLabel} · ${values.length} samples`;
 
   if (values.length === 0) {
     Plotly.purge('histogram');
@@ -606,6 +699,7 @@ function updateHistogram() {
   Plotly.newPlot('histogram', data, layout, { displaylogo: false, responsive: true });
 }
 
+updateExampleLayout();
 loadDefaultScenicSource();
 </script>
 </body>
